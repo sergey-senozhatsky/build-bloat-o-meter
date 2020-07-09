@@ -1,0 +1,51 @@
+#!/bin/sh
+
+# Sergey Senozhatsky, 2020
+# GPLv2
+
+# list all the files that you want to bloat-o-meter
+declare -a BLOATFILES=("vmlinux")
+
+LINUX_DIR=~/_next/
+SCRIPT=${LINUX_DIR}/scripts/bloat-o-meter
+REPORT=${LINUX_DIR}/bloat-o-meter-report
+
+function copy_objs
+{
+	for f in "${BLOATFILES[@]}"; do
+		if [ -f ${LINUX_DIR}/${f} ]; then
+			echo "copy ${f}"
+
+			if [ -f ${LINUX_DIR}/${f}.prev ]; then
+				rm ${LINUX_DIR}/${f}.prev
+			fi
+			mv ${LINUX_DIR}/${f} ${LINUX_DIR}/${f}.prev
+		fi
+	done
+}
+
+function bloatometer_objs
+{
+	echo '' > ${REPORT}
+
+	for f in "${BLOATFILES[@]}"; do
+		if [ -f ${LINUX_DIR}/${f}.prev ]; then
+			echo "${f}" >> ${REPORT}
+
+			$(${SCRIPT} -c ${LINUX_DIR}/${f}.prev ${LINUX_DIR}/${f}) >> ${REPORT}
+			echo "---------------------------" >> ${REPORT}
+		fi
+	done
+}
+
+case "z$1" in
+	"zpre")
+		copy_objs
+		;;
+	"zpost")
+		bloatometer_objs
+		;;
+	*)
+		echo "Unknown parameter"
+		;;
+esac
